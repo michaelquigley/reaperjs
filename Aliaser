@@ -1,0 +1,77 @@
+// One Knob Aliasing
+//
+// A modified version of Xenakios/ReaCrush
+
+desc:FortifiedUniverse/Aliaser
+
+slider1:1<1,92>Downsample
+
+@init
+pos            = 0.0;
+interpos       = 0.0;
+ismpv1L        = 0.0;
+ismpv2L        = 0.0;
+ismpv1R        = 0.0;
+ismpv2R        = 0.0;
+insmpv1L       = 0.0;
+insmpv1R       = 0.0;
+nsht           = 0.0;
+
+@slider
+pdc_delay      = 64;
+pdc_bot_ch     = 0; 
+pdc_top_ch     = 2;
+
+@slider
+nyqu = srate / 2.0 / slider1;
+cutoff = 0.95 * (nyqu +(((srate / 2.0 - nyqu) / 100.0) * 100.0));
+damp = 0.01 + 0.55 * 20;
+c = 1 / tan($pi * cutoff / srate);
+fk = 1 / (1 + c * (c + damp));
+fa1 = 2 * (1 - c * c) * fk;
+fa0 = (1 + c * (c - damp)) * fk;
+oldamp = damp;
+pos = 0; 
+nsht = slider1;
+sstps = 2;
+invbd = 1.0 / sstps;
+
+@sample
+fd0l = (fk * spl0) - (fa1 * fd1l) - (fa0 * fd2l);
+fd0r = (fk * spl1) - (fa1 * fd1r) - (fa0 * fd2r);
+spl0 = fd0l + fd1l + fd1l + fd2l;
+spl1 = fd0r + fd1r + fd1r + fd2r;
+fd2l = fd1l;
+fd2r = fd1r;
+fd1l = fd0l;
+fd1r = fd0r;
+pos==0 ? (  
+	ismpv2L = spl0;
+	ismpv2R = spl1;
+);
+
+ax = floor(pos);
+bx = floor(nsht);
+ax == bx ? (
+	interpos = 0;
+	nsht += slider1;
+	insmpv2L = spl0;
+	insmpv2R = spl1;
+);
+pos += 1;
+interpos += (1.0);
+new1 = insmpv1L;
+new2 = insmpv1R;
+new1 = floor(new1 * sstps) * invbd;
+new2 = floor(new2 * sstps) * invbd;
+new1 > 1.0 ? new1 = 1.0;
+new1 < -1.0 ? new1 = -1.0;
+new2 > 1.0 ? new2 = 1.0;
+new2 < -1.0 ? new2 = -1.0;
+spl0 = new1;
+spl1 = new2;
+floor(interpos) == floor(slider1) ? (
+	insmpv1L = insmpv2L;
+	insmpv1R = insmpv2R;
+);
+
